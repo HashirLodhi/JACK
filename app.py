@@ -23,7 +23,7 @@ groq_model = "llama-3.3-70b-versatile"
 
 exa_client = Exa(api_key=os.getenv("EXA_API"))
 
-flask_app = Flask(__name__, static_folder='static', template_folder='templates')
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 
 def generate_verification_query(text, speaker):
@@ -222,11 +222,11 @@ def verify_claim(text, speaker):
 {part4}"""
 
 
-@flask_app.route('/')
+@app.route('/')
 def index():
     return render_template('index.html')
 
-@flask_app.route('/api/verify', methods=['POST'])
+@app.route('/api/verify', methods=['POST'])
 def api_verify():
     data = request.get_json()
     claim = data.get('claim', '')
@@ -268,7 +268,7 @@ def api_verify():
         'sources': sources
     })
 
-@flask_app.route('/api/search-query', methods=['POST'])
+@app.route('/api/search-query', methods=['POST'])
 def api_search_query():
     data = request.get_json()
     claim = data.get('claim', '')
@@ -287,5 +287,4 @@ def api_search_query():
 
 
 if __name__ == "__main__":
-    # Serve the HTML UI via Flask
-    flask_app.run(host="0.0.0.0", port=5001, debug=False)
+    app.run(host="0.0.0.0", port=5001, debug=False)
