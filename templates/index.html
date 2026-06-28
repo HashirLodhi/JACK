@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JACK</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <h1>JACK</h1>
+        <form id="verify-form">
+            <div class="form-row">
+                <div class="field">
+                    <label for="claim">Claim</label>
+                    <textarea id="claim" name="claim" rows="3" placeholder="Enter the claim to fact-check..." required></textarea>
+                </div>
+                <div class="field">
+                    <label for="speaker">Speaker</label>
+                    <input type="text" id="speaker" name="speaker" placeholder="e.g., Jeff Bezos, Elon Musk" required />
+                </div>
+            </div>
+            <button type="submit" class="primary">Verify Claim</button>
+        </form>
+        <div id="status" class="status hidden"></div>
+        <div id="result" class="result hidden"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('verify-form');
+        const statusEl = document.getElementById('status');
+        const resultEl = document.getElementById('result');
+
+        function formatResult(text) {
+            // Convert markdown headings (## ...) to bold HTML
+            let html = text.replace(/^##\s*(.+)$/gm, '<strong style="font-size:1.1rem;">$1</strong>');
+            // Convert markdown links [text](url) to clickable anchors
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:#4fd1c5;">$1</a>');
+            // Preserve line breaks
+            html = html.replace(/\n/g, '<br/>');
+            return html;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            statusEl.textContent = '🤖 Agents are handling your research — just sit tight!';
+            statusEl.classList.remove('hidden');
+            resultEl.classList.add('hidden');
+
+            const claim = document.getElementById('claim').value.trim();
+            const speaker = document.getElementById('speaker').value.trim();
+
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ claim, speaker })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    statusEl.textContent = data.error || 'An error occurred.';
+                    return;
+                }
+                statusEl.classList.add('hidden');
+                resultEl.innerHTML = formatResult(data.result);
+                resultEl.classList.remove('hidden');
+            } catch (err) {
+                statusEl.textContent = 'Network error – please try again.';
+            }
+        });
+    </script>
+</body>
+</html>
