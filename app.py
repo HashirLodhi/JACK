@@ -12,16 +12,21 @@ for var in ["HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"]:
     os.environ.pop(var, None)
 
 # Initialize Groq client with safe error handling
+groq_init_error = None
 try:
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"), timeout=60.0)
 except Exception as e:
     groq_client = None
     groq_init_error = str(e)
 
-
 groq_model = "llama-3.3-70b-versatile"
 
-exa_client = Exa(api_key=os.getenv("EXA_API"))
+# Initialize Exa client with safe error handling
+try:
+    exa_client = Exa(api_key=os.getenv("EXA_API"))
+except Exception as e:
+    exa_client = None
+    print(f"Exa client initialization failed: {e}")
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -50,6 +55,8 @@ Generate a specific, concise search query that would verify if this statement is
 
 
 def search_with_exa(query):
+    if not exa_client:
+        return "Error: Exa client not initialized. Check EXA_API environment variable."
     try:
         response = exa_client.search(
             query=query,
