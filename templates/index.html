@@ -6,206 +6,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JACK</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-    <style>
-        /* Premium full-screen chat UI */
-        *, *::before, *::after { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 1.5rem;
-            overflow: hidden;
-        }
-
-        h1 {
-            text-align: center;
-            margin: 0 0 1rem 0;
-            font-weight: 700;
-            font-size: 2rem;
-            color: #ffffff;
-            letter-spacing: 0.1em;
-        }
-
-        .form-row {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 0.75rem;
-            width: 100%;
-        }
-
-        .field {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.4rem;
-            font-weight: 600;
-            color: #a0aec0;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        textarea,
-        input[type="text"] {
-            width: 100%;
-            height: 80px;
-            padding: 0.7rem;
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 8px;
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            resize: none;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        textarea:focus,
-        input[type="text"]:focus {
-            border-color: #4fd1c5;
-        }
-
-        textarea::placeholder,
-        input[type="text"]::placeholder {
-            color: rgba(255,255,255,0.35);
-        }
-
-        button.primary {
-            width: 100%;
-            padding: 0.85rem;
-            background: linear-gradient(90deg, #4fd1c5, #38b2ac);
-            border: none;
-            border-radius: 8px;
-            color: #000;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s;
-            margin-top: 0.5rem;
-        }
-
-        button.primary:hover { opacity: 0.9; }
-        button.primary:active { transform: scale(0.99); }
-
-        .status {
-            margin-top: 0.5rem;
-            text-align: center;
-            font-style: italic;
-            color: #81e6d9;
-            font-size: 0.95rem;
-        }
-
-        .result {
-            flex: 1 1 0;
-            margin-top: 0.75rem;
-            background: rgba(0,0,0,0.25);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 1.25rem;
-            border-radius: 10px;
-            overflow-y: auto;
-            word-break: break-word;
-            color: #e0ffe0;
-            font-size: 0.97rem;
-            line-height: 1.7;
-        }
-
-        .result strong {
-            display: block;
-            margin-top: 1.2rem;
-            margin-bottom: 0.4rem;
-            font-size: 1.05rem;
-            color: #4fd1c5;
-        }
-
-        .result a {
-            color: #63b3ed;
-            text-decoration: underline;
-        }
-
-        .hidden { display: none; }
-    </style>
+    <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
     <div class="container">
         <h1>JACK</h1>
-        <form id="verify-form">
-            <div class="form-row">
-                <div class="field">
-                    <label for="claim">Claim</label>
-                    <textarea id="claim" name="claim" placeholder="Enter the claim to fact-check..." required></textarea>
+        
+        <div class="tabs" role="tablist">
+            <button class="tab active" role="tab" data-tab="factcheck" aria-selected="true">Fact Check</button>
+            <button class="tab" role="tab" data-tab="query" aria-selected="false">Simple Query</button>
+        </div>
+        
+        <div id="factcheck-panel" class="tab-panel" role="tabpanel">
+            <form id="verify-form">
+                <div class="form-row">
+                    <div class="field">
+                        <label for="claim">Claim</label>
+                        <textarea id="claim" name="claim" placeholder="Enter the claim to fact-check..." required></textarea>
+                    </div>
+                    <div class="field">
+                        <label for="speaker">Speaker</label>
+                        <input type="text" id="speaker" name="speaker" placeholder="e.g., Jeff Bezos, Elon Musk" required />
+                    </div>
                 </div>
+                <button type="submit" class="primary">Verify Claim</button>
+            </form>
+        </div>
+        
+        <div id="query-panel" class="tab-panel hidden" role="tabpanel">
+            <form id="query-form">
                 <div class="field">
-                    <label for="speaker">Speaker</label>
-                    <input type="text" id="speaker" name="speaker" placeholder="e.g., Jeff Bezos, Elon Musk" required />
+                    <label for="question">Question</label>
+                    <textarea id="question" name="question" placeholder="Ask anything — JACK will search the web and answer with sources..." required></textarea>
                 </div>
-            </div>
-            <button type="submit" class="primary">Verify Claim</button>
-        </form>
+                <button type="submit" class="primary">Ask Question</button>
+            </form>
+        </div>
+        
         <div id="status" class="status hidden"></div>
         <div id="result" class="result hidden"></div>
     </div>
 
-    <script>
-        const form = document.getElementById('verify-form');
-        const statusEl = document.getElementById('status');
-        const resultEl = document.getElementById('result');
-
-        function formatResult(text) {
-            // Convert ## headings to styled bold blocks
-            let html = text.replace(/^##\s*(.+)$/gm, '<strong>$1</strong>');
-            // Convert markdown links [text](url) to clickable anchors
-            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-            // Preserve line breaks
-            html = html.replace(/\n/g, '<br/>');
-            return html;
-        }
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            statusEl.textContent = '🤖 Agents are handling your research — just sit tight!';
-            statusEl.classList.remove('hidden');
-            resultEl.classList.add('hidden');
-            resultEl.innerHTML = '';
-
-            const claim = document.getElementById('claim').value.trim();
-            const speaker = document.getElementById('speaker').value.trim();
-
-            try {
-                const response = await fetch('/api/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ claim, speaker })
-                });
-                const data = await response.json();
-                if (!response.ok) {
-                    statusEl.textContent = '❌ ' + (data.error || 'An error occurred.');
-                    return;
-                }
-                statusEl.classList.add('hidden');
-                resultEl.innerHTML = formatResult(data.result);
-                resultEl.classList.remove('hidden');
-            } catch (err) {
-                statusEl.textContent = '❌ Network error – please try again.';
-            }
-        });
-    </script>
+    <script src="/static/app.js"></script>
 </body>
 </html>

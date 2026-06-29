@@ -229,6 +229,69 @@ def verify_claim(text, speaker):
 {part4}"""
 
 
+def simple_query(question):
+    if not question:
+        return "Please provide a question."
+
+    if not exa_client:
+        return "Error: Exa client not initialized. Check EXA_API environment variable."
+
+    try:
+        response = exa_client.search(
+            query=question,
+            num_results=5,
+            type="neural"
+        )
+        sources = []
+        for result in response.results:
+            title = getattr(result, "title", "No title")
+            url = getattr(result, "url", "")
+            text = getattr(result, "text", "")
+            snippet = text[:500] if text else ""
+            sources.append({
+                "title": title,
+                "url": url,
+                "text": snippet
+            })
+    except Exception as e:
+        return f"Error searching: {e}"
+
+    if not sources:
+        return "No sources found for your question."
+
+    sources_text = "\n\n".join([
+        f"Source {i+1}: {s['title']}\nURL: {s['url']}\nContent: {s['text']}"
+        for i, s in enumerate(sources)
+    ])
+    source_refs = "\n".join([f"Source {i+1}: [{s['title']}]({s['url']})" for i, s in enumerate(sources)])
+
+    prompt = f"""Answer the following question based on the sources below. Provide a clear, concise answer with inline citations using markdown links like: "According to [Source 1](URL), ..."
+
+QUESTION: {question}
+
+SOURCES:
+{sources_text}
+
+REFERENCE LIST:
+{source_refs}"""
+
+    if not groq_client:
+        return f"Error: Groq client initialization failed – {groq_init_error}"
+
+    try:
+        response = groq_client.chat.completions.create(
+            model=groq_model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=800
+        )
+        answer = response.choices[0].message.content.strip()
+        source_links = "\n".join([f"- [{s['title']}]({s['url']})" for s in sources])
+        return f"{answer}\n\n## Sources\n{source_links}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -289,6 +352,21 @@ def api_search_query():
         return jsonify({'error': query}), 500
     
     return jsonify({'query': query})
+
+
+@app.route('/api/query', methods=['POST'])
+def api_query():
+    data = request.get_json()
+    question = data.get('question', '')
+    
+    if not question:
+        return jsonify({'error': 'Please provide a question.'}), 400
+    
+    result = simple_query(question)
+    if result.startswith("Error"):
+        return jsonify({'error': result}), 500
+    
+    return jsonify({'result': result})
 
 
 
